@@ -54,7 +54,8 @@ int Quiescence(chess::Board& board, int alpha, int beta, int search_ply, clk::ti
     return best_score;
 }
 
-int AlphaBeta(chess::Board& board, int alpha, int beta, int depth, int search_ply, clk::time_point start_time) {
+int min_nmp_ply = 0;
+int AlphaBeta(chess::Board& board, int alpha, int beta, int depth, int search_ply, clk::time_point start_time, bool allow_null_move) {
     assert(alpha >= -INFINITE);
     assert(beta <= INFINITE);
 
@@ -77,7 +78,7 @@ int AlphaBeta(chess::Board& board, int alpha, int beta, int depth, int search_pl
 
     if (time_over) return 0;
 
-    if (depth == 0) return Quiescence(board, alpha, beta, search_ply, start_time);
+    if (depth <= 0) return Quiescence(board, alpha, beta, search_ply, start_time);
 
     bool root_node = (search_ply == 0);
     if (!root_node) {
@@ -118,6 +119,28 @@ int AlphaBeta(chess::Board& board, int alpha, int beta, int depth, int search_pl
     } else {tt_misses++;}
 
     bool in_check    = board.inCheck();
+    int16_t static_eval = evaluate(board);
+
+    // Null move pruning
+    if (allow_null_move && !is_pv && !root_node && hasNonPawnMaterial(board) && static_eval >= beta && !in_check && search_ply >= min_nmp_ply) {
+        int R = 7 + depth / 3;
+
+        board.makeNullMove();
+        int null_score = -AlphaBeta(board, -beta, -beta + 1, depth - R, search_ply + 1, start_time, false);
+        board.unmakeNullMove();
+
+        if (null_score >= beta) {
+            if (min_nmp_ply || depth < 16) return null_score;
+            
+            min_nmp_ply = search_ply + 3 * (depth - R) / 4;
+            int validation_score = -AlphaBeta(board, beta - 1, beta, depth - R, search_ply + 1, start_time, false);
+            min_nmp_ply = 0;
+
+            if (validation_score >= beta) return validation_score;
+        }
+    }
+
+
     chess::Color stm = board.sideToMove();
     int best_score = -INFINITE;
     chess::Move best_move = chess::Move::NO_MOVE;
@@ -135,14 +158,14 @@ int AlphaBeta(chess::Board& board, int alpha, int beta, int depth, int search_pl
 
         // Principal Variation Search (PVS)
         if (index == 0) {
-            score = -AlphaBeta(board, -beta, -alpha, depth - 1, search_ply + 1, start_time);
+            score = -AlphaBeta(board, -beta, -alpha, depth - 1, search_ply + 1, start_time, true);
         } else {
-            score = -AlphaBeta(board, -alpha - 1, -alpha, depth - 1, search_ply + 1, start_time);
+            score = -AlphaBeta(board, -alpha - 1, -alpha, depth - 1, search_ply + 1, start_time, true);
             if (score > alpha && is_pv) {
-                score = -AlphaBeta(board, -beta, -alpha, depth - 1, search_ply + 1, start_time);
+                score = -AlphaBeta(board, -beta, -alpha, depth - 1, search_ply + 1, start_time, true);
             }
         }
-        
+
         board.unmakeMove(move);
 
         if (time_over) return 0;
@@ -204,13 +227,14 @@ void IterativeDeepening(chess::Board& board) {
     nodes_searched = 0;
     tt_hits = 0;
     tt_misses = 0;
+    min_nmp_ply = 0;
 
     global_age++;
 
     auto start_time = std::chrono::steady_clock::now();
     for (int depth = 1; depth <= max_depth; ++depth) {
         if (depth < 5) {
-            score = AlphaBeta(board, -INFINITE, INFINITE, depth, 0, start_time);
+            score = AlphaBeta(board, -INFINITE, INFINITE, depth, 0, start_time, true);
 
             if (time_over) break;
         } else {
@@ -223,7 +247,7 @@ void IterativeDeepening(chess::Board& board) {
             int beta  = std::min(previous_score + delta, INFINITE);
 
             while (true) {
-                score = AlphaBeta(board, alpha, beta, depth, 0, start_time);
+                score = AlphaBeta(board, alpha, beta, depth, 0, start_time, true);
                 if (time_over) break;
 
                 if (score <= alpha) {

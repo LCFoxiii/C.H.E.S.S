@@ -44,6 +44,15 @@ inline chess::Move killer_moves[MAX_KILLER_MOVES][MAX_PLY]{};
 inline int history_heuristic[2][64][64]{};
 inline static constexpr int16_t search_piece_values[6] = {100, 325, 350, 500, 900, 0};
 
+inline bool hasNonPawnMaterial(const chess::Board& board) {
+    const chess::Bitboard bishops = board.pieces(chess::PieceType::BISHOP);
+    const chess::Bitboard knights = board.pieces(chess::PieceType::KNIGHT);
+    const chess::Bitboard rooks   = board.pieces(chess::PieceType::ROOK);
+    const chess::Bitboard queens  = board.pieces(chess::PieceType::QUEEN);
+
+    return bishops || knights || rooks || queens;
+}
+
 static constexpr int mvv_scores[6][6] = {
     {6002, 20225, 20250, 20400, 20800, 26900},
     {4775, 6004, 20025, 20175, 20575, 26675},
@@ -119,5 +128,5 @@ inline std::string stats(const int depth, const int score, const clk::time_point
 }
 
 int Quiescence(chess::Board& board, int alpha, int beta, int search_ply, clk::time_point start_time);
-int AlphaBeta(chess::Board& board, int alpha, int beta, int depth, int search_ply, clk::time_point start_time);
+int AlphaBeta(chess::Board& board, int alpha, int beta, int depth, int search_ply, clk::time_point start_time, bool allow_null_move);
 void IterativeDeepening(chess::Board& board);
