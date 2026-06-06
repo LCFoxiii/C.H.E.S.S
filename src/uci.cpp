@@ -1,4 +1,5 @@
 #include "uci.hpp"
+#include "tt.hpp"
 
 uint64_t perft(chess::Board& board, int depth) {
     chess::Movelist moves;
@@ -92,8 +93,6 @@ void UCILoop() {
                         if (index + 1 < tokens.size()) max_depth = std::stoi(tokens[index + 1].data());
                         index++;
                     }
-                } else {
-                    std::cerr << "Unknown go parameter: " << tokens[index] << std::endl;
                 }
             }
 
@@ -112,6 +111,7 @@ void UCILoop() {
         } else if (tokens[0] == "ucinewgame") {
             board.backtrackTo(startpos_board);
             time_over = false;
+            clearTT();
         } else if (tokens[0] == "p") {
             std::cout << board << std::endl;
         } else if (tokens[0] == "perft") {

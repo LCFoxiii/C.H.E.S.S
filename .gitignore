@@ -63,4 +63,4 @@ Testing/
 .cache/
 
 # output of makefile
-chess
+*chess*

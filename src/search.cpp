@@ -1,6 +1,7 @@
 #include "search.hpp"
 #include "evaluate.hpp"
 #include "move_picker.hpp"
+#include "tt.hpp"
 
 void addKillerMove(chess::Move move, uint8_t ply) {
     if (killer_moves[0][ply] != move.move()) {
@@ -32,9 +33,9 @@ int Quiescence(chess::Board& board, int alpha, int beta, int search_ply, clk::ti
 
     chess::Movelist moves;
     chess::movegen::legalmoves<chess::movegen::MoveGenType::CAPTURE>(moves, board);
-    ScoreMoves<true>(board, moves, search_ply);
+    ScoreMoves<true>(board, moves, search_ply, chess::Move::NO_MOVE);
 
-    for (int index = 0; index < moves.size(); ++index) {
+    for (int index = 0; index < moves.size(); index++) {
         PickMove(moves, index);
         const chess::Move& move = moves[index];
         nodes_searched++;
@@ -63,6 +64,7 @@ int AlphaBeta(chess::Board& board, int alpha, int beta, int depth, int search_pl
     assert(search_ply <= MAX_PLY);
 
     pv_length[search_ply] = search_ply;
+    int old_alpha = alpha;
     
     // check time every 1024 nodes.
     if ((nodes_searched & 1023) == 0) {
@@ -90,15 +92,38 @@ int AlphaBeta(chess::Board& board, int alpha, int beta, int depth, int search_pl
         if (alpha >= beta) return alpha;
     }
 
+    // Transposition Table Lookup
+    // tt_hits and tt_misses are just for statistics and debugging
+    // and has no effect on the actual search.
+    uint64_t hash = board.hash();
+    TTEntry* tt_entry = probeTT(hash);
+    chess::Move tt_move = chess::Move::NO_MOVE;
+    if (tt_entry && tt_entry->key == hash) {
+        tt_hits++;
+        tt_move = tt_entry->move;
+
+        if (tt_entry->depth >= depth) {
+            TTFlag flag = tt_entry->flag;
+            int16_t tt_score = CorrectScore(tt_entry->score, search_ply);
+
+            if (!root_node) {
+                if (flag == TTFlag::EXACT) return tt_score;
+                else if (flag == TTFlag::TT_BETA && tt_score >= beta) return tt_score;
+                else if (flag == TTFlag::TT_ALPHA && tt_score <= alpha) return tt_score;
+            }
+        }
+    } else {tt_misses++;}
+
     bool in_check  = board.inCheck();
     chess::Color stm = board.sideToMove();
     int best_score = -INFINITE;
+    chess::Move best_move = chess::Move::NO_MOVE;
 
     chess::Movelist moves;
     chess::movegen::legalmoves(moves, board);
-    ScoreMoves<false>(board, moves, search_ply);
+    ScoreMoves<false>(board, moves, search_ply, tt_move);
 
-    for (int index = 0; index < moves.size(); ++index) {
+    for (int index = 0; index < moves.size(); index++) {
         PickMove(moves, index);
         const chess::Move& move = moves[index];
         nodes_searched++;
@@ -113,6 +138,7 @@ int AlphaBeta(chess::Board& board, int alpha, int beta, int depth, int search_pl
         
         if (score > alpha) {
             alpha = score;
+            best_move = move;
             addPV(search_ply, move);
         }
 
@@ -142,6 +168,13 @@ int AlphaBeta(chess::Board& board, int alpha, int beta, int depth, int search_pl
         return in_check ? mated_in(search_ply) : DRAW;
     }
 
+    // Storing in the Transposition Table
+    if (!time_over && tt_entry) {
+        TTFlag flag = (best_score <= old_alpha) ? TTFlag::TT_ALPHA : (best_score >= beta) ? TTFlag::TT_BETA : TTFlag::EXACT;
+        best_move = (best_move != chess::Move::NO_MOVE) ? best_move : tt_move;
+        storeTT(hash, CorrectForStore(best_score, search_ply), flag, depth, best_move);
+    }
+
     return best_score;
 }
 
@@ -156,6 +189,10 @@ void IterativeDeepening(chess::Board& board) {
     int score = 0;
     int previous_score = 0;
     nodes_searched = 0;
+    tt_hits = 0;
+    tt_misses = 0;
+
+    global_age++;
 
     auto start_time = std::chrono::steady_clock::now();
     for (int depth = 1; depth <= max_depth; ++depth) {
@@ -196,9 +233,6 @@ void IterativeDeepening(chess::Board& board) {
 
         std::cout << stats(depth, score, start_time, now) << std::endl;
     }
-
-    // I guess my logic is that since searching never goes past the time limit (with some noise of course)
-    // the last completed search probably never went past the time limit.
     
     std::cout << "bestmove " << chess::uci::moveToUci(best_move) << std::endl;
 }

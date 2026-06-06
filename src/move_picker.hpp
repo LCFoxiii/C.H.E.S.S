@@ -71,7 +71,7 @@ inline bool isBadCapture(const chess::Board& board, chess::Move move) {
 }
 
 template <bool inQs>
-inline void ScoreMoves(const chess::Board& board, chess::Movelist& moves, uint8_t ply) {
+inline void ScoreMoves(const chess::Board& board, chess::Movelist& moves, uint8_t ply, chess::Move tt_move) {
     for (chess::Move& move : moves) {
         if constexpr (inQs) {
             chess::PieceType victim = board.at<chess::PieceType>(move.to());
@@ -90,7 +90,10 @@ inline void ScoreMoves(const chess::Board& board, chess::Movelist& moves, uint8_
             move.setScore(mvv_lva(attacker, victim) + 100'000);
             continue;
         } else {
-            if (move.typeOf() == chess::Move::PROMOTION) {
+            if (move == tt_move) {
+                move.setScore(10'000'000);
+                continue;
+            } else if (move.typeOf() == chess::Move::PROMOTION) {
                 move.setScore(70'000);
                 continue;
             } else if (board.isCapture(move)) {

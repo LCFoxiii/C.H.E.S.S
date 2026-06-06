@@ -35,6 +35,8 @@ inline chess::Move pv[MAX_PLY][MAX_PLY]{};
 inline int pv_length[MAX_PLY]{};
 inline uint64_t nodes_searched = 0;
 inline std::atomic<bool> time_over(false);
+inline uint64_t tt_hits = 0;
+inline uint64_t tt_misses = 0;
 
 // Move ordering stuff
 static constexpr int MAX_KILLER_MOVES = 2;
@@ -111,6 +113,8 @@ inline std::string stats(const int depth, const int score, const clk::time_point
     output += " time " + std::to_string(time_ms);
     output += " nps " + std::to_string(nodes_searched / std::max(1, static_cast<int>(time_ms / 1000)));
     output += " pv " + grabPV();
+    output += "tt_hits " + std::to_string(tt_hits);
+    output += " tt_misses " + std::to_string(tt_misses);
     return output;
 }
 
