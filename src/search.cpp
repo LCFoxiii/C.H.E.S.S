@@ -175,6 +175,9 @@ int AlphaBeta(chess::Board& board, int alpha, int beta, int depth, int search_pl
         }
     }
 
+    // Internal Iterative Reduction (IIR)
+    if (depth >= 4 && tt_move == chess::Move::NO_MOVE && !in_check) depth--;
+
     chess::Color stm = board.sideToMove();
     int best_score = -INFINITE;
     chess::Move best_move = chess::Move::NO_MOVE;

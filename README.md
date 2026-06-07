@@ -13,6 +13,7 @@ A UCI-compliant chess engine made in under **10MB** as a personal challenge of m
 	- [Razoring](https://www.chessprogramming.org/Razoring)
 	- [Late Move Reductions](https://www.chessprogramming.org/Late_Move_Reductions)
 	- [Search Extension](https://www.chessprogramming.org/Extensions)
+	- [Internal Iterative Reduction](https://www.chessprogramming.org/Internal_Iterative_Reductions)
 - [Quiescence](https://www.chessprogramming.org/Quiescence_Search)
 - [Iterative Deepening](https://www.chessprogramming.org/Iterative_Deepening)
 	- [Aspiration Windows](https://www.chessprogramming.org/Aspiration_Windows)
