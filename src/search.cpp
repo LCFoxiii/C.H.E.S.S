@@ -125,7 +125,6 @@ int AlphaBeta(chess::Board& board, int alpha, int beta, int depth, int search_pl
     TTEntry* tt_entry = probeTT(hash);
     chess::Move tt_move = chess::Move::NO_MOVE;
     if (tt_entry && tt_entry->key == hash) {
-        tt_hits++;
         tt_move = tt_entry->move;
 
         if (tt_entry->depth >= depth) {
@@ -133,12 +132,20 @@ int AlphaBeta(chess::Board& board, int alpha, int beta, int depth, int search_pl
             int16_t tt_score = CorrectScore(tt_entry->score, search_ply);
 
             if (!root_node) {
-                if (flag == TTFlag::EXACT)                                        return tt_score;
-                else if (!is_pv && flag == TTFlag::TT_BETA && tt_score >= beta)   return tt_score;
-                else if (!is_pv && flag == TTFlag::TT_ALPHA && tt_score <= alpha) return tt_score;
+                if (flag == TTFlag::EXACT) {
+                    tt_hits++;
+                    return tt_score;
+                } else if (!is_pv && flag == TTFlag::TT_BETA && tt_score >= beta) {
+                    tt_hits++;
+                    return tt_score;
+                } else if (!is_pv && flag == TTFlag::TT_ALPHA && tt_score <= alpha) {
+                    tt_hits++;
+                    return tt_score;
+                }
             }
         }
-    } else {tt_misses++;}
+    }
+    tt_misses++;
 
     bool in_check    = board.inCheck();
     int16_t static_eval = evaluate(board);
