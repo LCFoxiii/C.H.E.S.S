@@ -23,6 +23,7 @@ A UCI-compliant chess engine made in under **10MB** as a personal challenge of m
 - [Tapered eval](https://www.chessprogramming.org/Tapered_Eval)
 - [Piece eval](https://www.chessprogramming.org/Point_Value)
 - [PSQT eval](https://www.chessprogramming.org/Piece-Square_Tables)
+- Pawn structure (cannot find the link unfortunately)
 
 ### Move Ordering
 - TT Move
