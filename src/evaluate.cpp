@@ -21,14 +21,31 @@ int32_t eval_all(const chess::Board& board, int& phase) {
     chess::Bitboard our_queens  = board.pieces(chess::PieceType::QUEEN, color);
     chess::Bitboard our_king    = board.pieces(chess::PieceType::KING, color);
 
+    const int pawns_count = our_pawns.count();
+    const int knights_count = our_knights.count();
+    const int bishops_count = our_bishops.count();
+    const int rooks_count = our_rooks.count();
+    const int queens_count = our_queens.count();
+
     chess::Bitboard opp_pawns   = board.pieces(chess::PieceType::PAWN, ~color);
+
+    // material score
+    packed_score += piece_values[0] * pawns_count;
+    packed_score += piece_values[1] * knights_count;
+    packed_score += piece_values[2] * bishops_count;
+    packed_score += piece_values[3] * rooks_count;
+    packed_score += piece_values[4] * queens_count;
+
+    // phase calculation
+    phase += knights_count;
+    phase += bishops_count;
+    phase += rooks_count  * 2;
+    phase += queens_count * 4;
+
 
     // isolated pawns
     chess::Bitboard isolated_pawns = ~FillBackward(FillForward(PawnAttacks<color>(our_pawns))) & our_pawns;
-    while (isolated_pawns) {
-        packed_score += ISOLATED_PAWN;
-        (void)isolated_pawns.pop(); // silence
-    }
+    packed_score += ISOLATED_PAWN * isolated_pawns.count();
 
     chess::Bitboard passed_pawns;
     if constexpr (color == chess::Color::WHITE) {
@@ -43,36 +60,28 @@ int32_t eval_all(const chess::Board& board, int& phase) {
         packed_score += PASSED_PAWNS[sq.relative_square(color).rank() - 1];
     }
 
+    // PSQT
     while (our_pawns) {
-        packed_score += piece_values[0];
         chess::Square sq = our_pawns.pop();
         packed_score += PSQT_PAWN[sq.relative_square(color).index() - 8];
     }
 
     while (our_knights) {
-        packed_score += piece_values[1];
-        phase += 1;
         chess::Square sq = our_knights.pop();
         packed_score += PSQT_KNIGHT[sq.relative_square(color).index()];
     }
 
     while (our_bishops) {
-        packed_score += piece_values[2];
-        phase += 1;
         chess::Square sq = our_bishops.pop();
         packed_score += PSQT_BISHOP[sq.relative_square(color).index()];
     }
 
     while (our_rooks) {
-        packed_score += piece_values[3];
-        phase += 2;
         chess::Square sq = our_rooks.pop();
         packed_score += PSQT_ROOK[sq.relative_square(color).index()];
     }
 
     while (our_queens) {
-        packed_score += piece_values[4];
-        phase += 4;
         chess::Square sq = our_queens.pop();
         packed_score += PSQT_QUEEN[sq.relative_square(color).index()];
     }
