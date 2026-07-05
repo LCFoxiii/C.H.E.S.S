@@ -32,8 +32,6 @@ int computeLMR(
     return reductions;
 }
 
-int value_draw() {return DRAW - 1 + int(nodes_searched & 2);}
-
 int Quiescence(chess::Board& board, int alpha, int beta, int search_ply, clk::time_point start_time) {
     assert(alpha >= -INFINITE);
     assert(beta <= INFINITE);
@@ -109,7 +107,7 @@ int AlphaBeta(chess::Board& board, int alpha, int beta, int depth, int search_pl
 
     bool root_node = (search_ply == 0);
     if (!root_node) {
-        if (board.isRepetition(1))          return value_draw();
+        if (board.isRepetition(1))          return DRAW;
         if (board.isHalfMoveDraw())         return DRAW;
         if (board.isInsufficientMaterial()) return DRAW;
 
