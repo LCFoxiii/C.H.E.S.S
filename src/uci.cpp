@@ -28,7 +28,7 @@ void UCILoop() {
         if (tokens.empty()) continue;
 
         if (tokens[0] == "uci") {
-            std::cout << "id name Chess\nid author JKidding\nuciok" << std::endl;
+            std::cout << "id name Chess\nid author LCFoxiii\nuciok" << std::endl;
         } else if (tokens[0] == "isready") {
             std::cout << "readyok" << std::endl;
         } else if (tokens[0] == "position") {
